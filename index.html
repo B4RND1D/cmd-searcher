@@ -50,56 +50,106 @@
     pointer-events: none; z-index: 0;
   }
 
-  /* ── Header ─────────────────────────────────────────── */
+  /* ── Header (compact – slides in when active) ───────── */
   header {
     position: sticky; top: 0; z-index: 100;
     background: rgba(10,12,15,0.94);
     backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
+    transform: translateY(-110%);
+    transition: transform 0.32s cubic-bezier(.4,0,.2,1);
   }
+  header.visible { transform: translateY(0); }
 
   .header-inner {
     max-width: 1140px; margin: 0 auto;
     display: flex; align-items: center; gap: 1.2rem;
-    padding: 0.85rem clamp(1rem, 4vw, 2.5rem);
+    padding: 0.75rem clamp(1rem, 4vw, 2.5rem);
   }
 
   .logo {
     font-family: 'Syne', sans-serif;
-    font-size: 1.35rem; font-weight: 800;
+    font-size: 1.2rem; font-weight: 800;
     color: var(--bright); letter-spacing: -0.02em;
     flex-shrink: 0; user-select: none;
   }
   .logo span { color: var(--accent); }
 
+  /* Shared search wrapper */
   .search-wrap {
     flex: 1; position: relative; display: flex; align-items: center;
   }
   .search-prefix {
-    position: absolute; left: 0.9rem;
-    color: var(--accent); font-size: 0.9rem;
-    pointer-events: none; user-select: none;
+    position: absolute; z-index: 1;
+    color: var(--accent); pointer-events: none; user-select: none;
   }
+
+  /* Base input – appearance shared, sizing overridden per context */
   #search {
     width: 100%;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
     color: var(--bright);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.88rem;
-    padding: 0.55rem 1rem 0.55rem 2.2rem;
     outline: none; caret-color: var(--accent);
     transition: border-color 0.2s, box-shadow 0.2s;
   }
-  #search:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(0,229,160,0.1), 0 0 18px rgba(0,229,160,0.05);
-  }
+  #search:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,229,160,0.1); }
   #search::placeholder { color: var(--dim); }
+
+  /* Compact (in header) */
+  .header-inner .search-wrap #search {
+    font-size: 0.88rem; padding: 0.5rem 1rem 0.5rem 2.2rem; border-radius: 6px;
+  }
+  .header-inner .search-wrap .search-prefix { font-size: 0.9rem; left: 0.9rem; }
+
+  /* Large (in hero) */
+  #hero-search-wrap #search {
+    font-size: 1.05rem; padding: 0.9rem 1.2rem 0.9rem 2.7rem;
+    border-radius: 10px; border-color: var(--dim);
+  }
+  #hero-search-wrap #search:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.12), 0 8px 32px rgba(0,229,160,0.07);
+  }
+  #hero-search-wrap .search-prefix { font-size: 1.1rem; left: 1rem; }
 
   #count { flex-shrink: 0; font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
   #count strong { color: var(--accent); }
+
+  /* ── Hero ────────────────────────────────────────────── */
+  #hero {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 58vh; gap: 1.6rem;
+    padding: 3rem clamp(1rem, 6vw, 3rem);
+    text-align: center;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  #hero.hidden { display: none; }
+
+  .hero-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.2rem, 6vw, 3.4rem);
+    font-weight: 800; color: var(--bright);
+    letter-spacing: -0.03em; line-height: 1;
+  }
+  .hero-logo span { color: var(--accent); }
+
+  .hero-sub {
+    color: var(--muted); font-size: 0.78rem;
+    line-height: 1.9; margin-top: -0.4rem;
+  }
+  .hero-sub kbd {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 3px; padding: 0.1rem 0.45rem;
+    font-size: 0.7rem; color: var(--accent2);
+  }
+
+  #hero-search-wrap {
+    width: 100%; max-width: 600px;
+    position: relative; display: flex; align-items: center;
+  }
 
   /* ── Group Tab Bar ───────────────────────────────────── */
   .group-bar {
@@ -152,32 +202,6 @@
     max-width: 1140px; margin: 0 auto;
     padding: 1rem clamp(1rem, 4vw, 2.5rem) 5rem;
     position: relative; z-index: 1;
-  }
-
-  /* ── Empty / idle state ──────────────────────────────── */
-  #idle {
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 6rem 0 4rem;
-    gap: 1rem;
-    color: var(--dim);
-    font-size: 0.82rem;
-    text-align: center;
-    animation: fadeIn 0.4s ease;
-  }
-  #idle .big-prompt {
-    font-family: 'Syne', sans-serif;
-    font-size: clamp(1.6rem, 4vw, 2.4rem);
-    font-weight: 800;
-    color: var(--bright);
-    line-height: 1.2;
-  }
-  #idle .big-prompt span { color: var(--accent); }
-  #idle .hint { color: var(--muted); font-size: 0.78rem; line-height: 1.8; }
-  #idle .hint kbd {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 3px; padding: 0.1rem 0.4rem; font-size: 0.72rem;
-    color: var(--accent2);
   }
 
   /* ── Results grid ────────────────────────────────────── */
@@ -266,44 +290,41 @@
 </head>
 <body>
 
-<header>
+<!-- Hero: zentrierte Suche beim Start -->
+<div id="hero">
+  <div class="hero-logo">CMD<span>Search</span></div>
+  <div id="hero-search-wrap">
+    <span class="search-prefix">$</span>
+    <input id="search" type="text"
+      placeholder="Befehl, Tool oder Stichwort eingeben …"
+      autocomplete="off" spellcheck="false" autofocus>
+  </div>
+  <div class="hero-sub">
+    Tippe einen Befehl, Tool oder Stichwort.<br>
+    <kbd>nmap -sV</kbd>&nbsp;&nbsp;<kbd>reverse shell</kbd>&nbsp;&nbsp;<kbd>Get-MpThreat</kbd>&nbsp;&nbsp;<kbd>privesc</kbd>
+  </div>
+</div>
+
+<!-- Header: erscheint beim Tippen -->
+<header id="mainHeader">
   <div class="header-inner">
     <div class="logo">CMD<span>Search</span></div>
-    <div class="search-wrap">
-      <span class="search-prefix">$</span>
-      <input id="search" type="text"
-        placeholder="Befehl, Tool oder Stichwort eingeben …"
-        autocomplete="off" spellcheck="false" autofocus>
-    </div>
+    <div class="search-wrap" id="headerSearchSlot"></div>
     <div id="count"></div>
   </div>
-  <!-- Group tabs – rendered by JS -->
   <div class="group-bar" id="groupBar"></div>
 </header>
 
-<!-- Sub-category filter – rendered by JS -->
+<!-- Sub-category filter -->
 <div class="cat-bar" id="catBar"></div>
 
 <div class="page">
-  <!-- Idle / empty start state -->
-  <div id="idle">
-    <div class="big-prompt">Wonach suchst du?<span>_</span></div>
-    <div class="hint">
-      Tippe einen Befehl oder ein Stichwort um Commands zu suchen.<br>
-      Oder wähle eine Gruppe oben zum Stöbern.<br><br>
-      <kbd>nmap -sV</kbd>&nbsp;&nbsp;<kbd>reverse shell</kbd>&nbsp;&nbsp;<kbd>Get-MpThreat</kbd>&nbsp;&nbsp;<kbd>privesc</kbd>
-    </div>
-  </div>
-
   <div id="results"></div>
   <div id="no-results">
     <span class="big">∅</span>
     Kein Command gefunden — versuch einen anderen Begriff.
   </div>
 </div>
-
-<!-- ── External database ── -->
-<script src="commands.js"></script>
 
 <script>
 // ─── Farbzuweisung pro cat ─────────────────────────────────
@@ -334,34 +355,57 @@ function catMeta(cat) {
 }
 
 // ─── State ─────────────────────────────────────────────────
-let activeGroup = null;   // null = Alle
+let activeGroup = null;
 let activeCat   = null;
-const searchEl  = document.getElementById('search');
-const resultsEl = document.getElementById('results');
-const countEl   = document.getElementById('count');
-const idleEl    = document.getElementById('idle');
-const noResEl   = document.getElementById('no-results');
-const groupBarEl= document.getElementById('groupBar');
-const catBarEl  = document.getElementById('catBar');
+const searchEl       = document.getElementById('search');
+const resultsEl      = document.getElementById('results');
+const countEl        = document.getElementById('count');
+const noResEl        = document.getElementById('no-results');
+const groupBarEl     = document.getElementById('groupBar');
+const catBarEl       = document.getElementById('catBar');
+const heroEl         = document.getElementById('hero');
+const heroSearchSlot = document.getElementById('hero-search-wrap');
+const headerSearchSlot = document.getElementById('headerSearchSlot');
+const headerEl       = document.getElementById('mainHeader');
+
+// The search input starts in the hero; on activate it moves to the header
+function setSearchActive(active) {
+  if (active) {
+    // Move input + prefix into header
+    const prefix = heroSearchSlot.querySelector('.search-prefix');
+    headerSearchSlot.appendChild(prefix);
+    headerSearchSlot.appendChild(searchEl);
+    headerEl.classList.add('visible');
+    heroEl.classList.add('hidden');
+  } else {
+    // Move back to hero
+    const prefix = headerSearchSlot.querySelector('.search-prefix');
+    heroSearchSlot.appendChild(prefix);
+    heroSearchSlot.appendChild(searchEl);
+    headerEl.classList.remove('visible');
+    heroEl.classList.remove('hidden');
+    searchEl.focus();
+  }
+}
 
 // ─── Distinct groups ───────────────────────────────────────
-const GROUPS = ['Alle', ...new Set(DB.map(c => c.group))];
-
-// ─── Build group tabs ──────────────────────────────────────
-GROUPS.forEach(g => {
-  const btn = document.createElement('button');
-  btn.className = 'group-tab' + (g === 'Alle' ? ' active' : '');
-  btn.textContent = g;
-  btn.addEventListener('click', () => {
-    activeGroup = g === 'Alle' ? null : g;
-    activeCat   = null;
-    document.querySelectorAll('.group-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    buildCatBar();
-    render();
+function buildGroupTabs() {
+  const GROUPS = ['Alle', ...new Set(DB.map(c => c.group))];
+  GROUPS.forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'group-tab' + (g === 'Alle' ? ' active' : '');
+    btn.textContent = g;
+    btn.addEventListener('click', () => {
+      activeGroup = g === 'Alle' ? null : g;
+      activeCat   = null;
+      document.querySelectorAll('.group-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      buildCatBar();
+      render();
+    });
+    groupBarEl.appendChild(btn);
   });
-  groupBarEl.appendChild(btn);
-});
+}
 
 // ─── Build sub-category (cat) bar ─────────────────────────
 function buildCatBar() {
@@ -427,8 +471,8 @@ function render() {
   const terms = q.split(/\s+/).filter(Boolean);
   const isIdle = terms.length === 0 && !activeGroup && !activeCat;
 
-  // Show idle screen when nothing is active
-  idleEl.style.display = isIdle ? 'flex' : 'none';
+  // Toggle hero vs header
+  setSearchActive(!isIdle);
 
   if (isIdle) {
     resultsEl.innerHTML = '';
@@ -492,9 +536,22 @@ function fallbackCopy(text, callback) {
 }
 
 // ─── Init ──────────────────────────────────────────────────
-searchEl.addEventListener('input', () => { activeCat = null; buildCatBar(); render(); });
-buildCatBar();
-render();
+fetch('commands.json')
+  .then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(data => {
+    window.DB = data;
+    searchEl.addEventListener('input', () => { activeCat = null; buildCatBar(); render(); });
+    buildGroupTabs();
+    buildCatBar();
+    render();
+  })
+  .catch(err => {
+    document.getElementById('hero').innerHTML =
+      '<div style="color:var(--red);font-size:.85rem">⚠ commands.json konnte nicht geladen werden.<br><small>' + err.message + '</small></div>';
+  });
 </script>
 </body>
 </html>
