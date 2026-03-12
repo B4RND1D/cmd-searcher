@@ -634,33 +634,9 @@
   {
     "group": "Microsoft Defender",
     "cat": "defender-av",
-    "title": "Quick Scan starten",
-    "desc": "Startet einen schnellen Antivirus-Scan (häufig befallene Bereiche).",
-    "cmd": "Start-MpScan -ScanType QuickScan",
-    "tags": [
-      "scan",
-      "antivirus",
-      "powershell"
-    ]
-  },
-  {
-    "group": "Microsoft Defender",
-    "cat": "defender-av",
-    "title": "Full Scan starten",
-    "desc": "Startet einen vollständigen Antivirus-Scan des Systems.",
-    "cmd": "Start-MpScan -ScanType FullScan",
-    "tags": [
-      "scan",
-      "antivirus",
-      "powershell"
-    ]
-  },
-  {
-    "group": "Microsoft Defender",
-    "cat": "defender-av",
-    "title": "Scan-Status abfragen",
+    "title": "Microsoft Defender Status",
     "desc": "Zeigt den aktuellen Status des Defender Antivirus an.",
-    "cmd": "Get-MpComputerStatus | Select-Object AMRunningMode, AntivirusEnabled, RealTimeProtectionEnabled, LastFullScanTime",
+    "cmd": "Get-MpComputerStatus",
     "tags": [
       "status",
       "powershell"
@@ -681,33 +657,20 @@
   {
     "group": "Microsoft Defender",
     "cat": "defender-av",
-    "title": "Exclusion hinzufügen (Pfad)",
-    "desc": "Fügt einen Pfad zur Defender-Ausschlussliste hinzu.",
-    "cmd": "Add-MpPreference -ExclusionPath '{PATH}'",
+    "title": "Alle AV Exclusions anzeigen",
+    "desc": "Listet alle konfigurierten AV Exclusions auf.",
+    "cmd": "Get-MpPreference | Select-Object ExclusionPath, ExclusionExtension, ExclusionProcess",
     "tags": [
       "exclusion",
-      "whitelist",
       "powershell"
     ]
   },
   {
     "group": "Microsoft Defender",
     "cat": "defender-av",
-    "title": "Exclusion hinzufügen (Prozess)",
-    "desc": "Fügt einen Prozess zur Defender-Ausschlussliste hinzu.",
-    "cmd": "Add-MpPreference -ExclusionProcess '{PROCESS.EXE}'",
-    "tags": [
-      "exclusion",
-      "whitelist",
-      "powershell"
-    ]
-  },
-  {
-    "group": "Microsoft Defender",
-    "cat": "defender-av",
-    "title": "Alle Exclusions anzeigen",
-    "desc": "Listet alle konfigurierten Exclusions auf.",
-    "cmd": "Get-MpPreference | Select-Object -ExpandProperty ExclusionPath",
+    "title": "Alle ASR Exclusions anzeigen",
+    "desc": "Listet alle konfigurierten ASR Exclusions auf.",
+    "cmd": "Get-MpPreference | Select-Object -ExpandProperty AttackSurfaceReductionOnlyExclusions",
     "tags": [
       "exclusion",
       "powershell"
@@ -746,18 +709,6 @@
       "config",
       "rtprotection",
       "powershell"
-    ]
-  },
-  {
-    "group": "Microsoft Defender",
-    "cat": "defender-mde",
-    "title": "Alerts nach Severity",
-    "desc": "Listet alle aktiven High/Critical-Alerts sortiert nach Zeitstempel.",
-    "cmd": "AlertInfo\n| where Severity in ('High', 'Critical')\n| where Status != 'Resolved'\n| order by Timestamp desc\n| take 50",
-    "tags": [
-      "kql",
-      "alerts",
-      "mde"
     ]
   },
   {
