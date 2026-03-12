@@ -219,9 +219,9 @@ const DB = [
   // └─────────────────────────────────────────────────────────┘
 
   // ── Defender AV (PowerShell) ──────────────────────────────
-  { group:"Microsoft Defender", cat:"defender-av", title:"Quick Scan starten",
-    desc:"Startet einen schnellen Antivirus-Scan (häufig befallene Bereiche).",
-    cmd:"Start-MpScan -ScanType QuickScan", tags:["scan","antivirus","powershell"] },
+  { group:"Microsoft Defender", cat:"defender-av", title:"Status Defender anzeigen",
+    desc:"Zeige den Status von Microsoft Defender an.",
+    cmd:"Get-Mp​ComputerStatus":["status","antivirus","powershell"] },
   { group:"Microsoft Defender", cat:"defender-av", title:"Full Scan starten",
     desc:"Startet einen vollständigen Antivirus-Scan des Systems.",
     cmd:"Start-MpScan -ScanType FullScan", tags:["scan","antivirus","powershell"] },
@@ -264,44 +264,30 @@ const DB = [
     desc:"Zeigt alle onboardeten Geräte mit Status.",
     cmd:"DeviceInfo\n| summarize arg_max(Timestamp, *) by DeviceId\n| where OnboardingStatus == 'Onboarded'\n| project DeviceName, OSPlatform, PublicIP, LastSeen", tags:["kql","mde","inventory"] },
 
-  // ── Windows Firewall ──────────────────────────────────────
-  { group:"Microsoft Defender", cat:"winfirewall", title:"Alle aktiven Regeln",
-    desc:"Listet alle aktivierten Firewall-Regeln auf.",
-    cmd:"Get-NetFirewallRule | Where-Object { $_.Enabled -eq 'True' } | Select-Object DisplayName, Direction, Action, Profile", tags:["firewall","powershell","enumeration"] },
-  { group:"Microsoft Defender", cat:"winfirewall", title:"Inbound Allow Regel erstellen",
-    desc:"Lässt eingehenden TCP-Traffic auf einem bestimmten Port zu.",
-    cmd:"New-NetFirewallRule -DisplayName '{RULE_NAME}' -Direction Inbound -Protocol TCP -LocalPort {PORT} -Action Allow", tags:["firewall","powershell","rule"] },
-  { group:"Microsoft Defender", cat:"winfirewall", title:"Outbound Block Regel erstellen",
-    desc:"Blockiert ausgehenden Traffic für ein bestimmtes Programm.",
-    cmd:"New-NetFirewallRule -DisplayName 'Block {APP}' -Direction Outbound -Program '{PATH}\\{APP}.exe' -Action Block", tags:["firewall","powershell","block"] },
-  { group:"Microsoft Defender", cat:"winfirewall", title:"Firewall-Profile Status",
-    desc:"Zeigt den Status aller Firewall-Profile (Domain, Private, Public).",
-    cmd:"Get-NetFirewallProfile | Select-Object Name, Enabled, DefaultInboundAction, DefaultOutboundAction", tags:["firewall","powershell","status"] },
-
 
   // ┌─────────────────────────────────────────────────────────┐
-  // │  GRUPPE: DevOps / Administration                        │
+  // │  GRUPPE: Administration                                 │
   // └─────────────────────────────────────────────────────────┘
 
   // ── Docker (Ops) ──────────────────────────────────────────
-  { group:"DevOps / Administration", cat:"docker-ops", title:"Container Logs",
+  { group:"Administration", cat:"docker-ops", title:"Container Logs",
     desc:"Zeigt die letzten 100 Log-Zeilen eines Containers in Echtzeit.",
     cmd:"docker logs --tail 100 -f {CONTAINER_ID}", tags:["docker","logs","debugging"] },
-  { group:"DevOps / Administration", cat:"docker-ops", title:"Container Ressourcen",
+  { group:"Administration", cat:"docker-ops", title:"Container Ressourcen",
     desc:"Zeigt CPU/RAM-Verbrauch aller laufenden Container.",
     cmd:"docker stats --no-stream", tags:["docker","monitoring"] },
-  { group:"DevOps / Administration", cat:"docker-ops", title:"System bereinigen",
+  { group:"Administration", cat:"docker-ops", title:"System bereinigen",
     desc:"Entfernt alle nicht verwendeten Images, Container und Volumes.",
     cmd:"docker system prune -a --volumes", tags:["docker","cleanup"] },
 
   // ── Git (Ops) ─────────────────────────────────────────────
-  { group:"DevOps / Administration", cat:"git-ops", title:"Gemergte Branches löschen",
+  { group:"Administration", cat:"git-ops", title:"Gemergte Branches löschen",
     desc:"Löscht alle bereits gemergten lokalen Branches.",
     cmd:"git branch --merged | grep -v '\\*\\|main\\|master\\|develop' | xargs git branch -d", tags:["git","cleanup","branch"] },
-  { group:"DevOps / Administration", cat:"git-ops", title:"Letzten Commit rückgängig",
+  { group:"Administration", cat:"git-ops", title:"Letzten Commit rückgängig",
     desc:"Macht den letzten Commit rückgängig (Dateien bleiben im Working Tree).",
     cmd:"git reset HEAD~1 --soft", tags:["git","undo"] },
-  { group:"DevOps / Administration", cat:"git-ops", title:"Remote Tags synchronisieren",
+  { group:"Administration", cat:"git-ops", title:"Remote Tags synchronisieren",
     desc:"Löscht lokale Tags und holt sie neu vom Remote.",
     cmd:"git tag -l | xargs git tag -d && git fetch --tags", tags:["git","tags","sync"] },
 
