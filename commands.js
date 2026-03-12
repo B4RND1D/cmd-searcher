@@ -221,7 +221,7 @@ const DB = [
   // ── Defender AV (PowerShell) ──────────────────────────────
   { group:"Microsoft Defender", cat:"defender-av", title:"Status Defender anzeigen",
     desc:"Zeige den Status von Microsoft Defender an.",
-    cmd:"Get-Mp​ComputerStatus":["status","antivirus","powershell"] },
+    cmd:"Get-Mp​ComputerStatus",:["status","antivirus","powershell"] },
   { group:"Microsoft Defender", cat:"defender-av", title:"Full Scan starten",
     desc:"Startet einen vollständigen Antivirus-Scan des Systems.",
     cmd:"Start-MpScan -ScanType FullScan", tags:["scan","antivirus","powershell"] },
