@@ -416,7 +416,7 @@ function cardHtml(cmd, q) {
     </div>
     <div class="cmd-block">
       <div class="cmd-desc">${hl(cmd.desc, q)}</div>
-      <div class="cmd-line">${hl(cmd.cmd, q)}<button class="copy-btn" onclick="copyCmd(this,${JSON.stringify(cmd.cmd)})">copy</button></div>
+      <div class="cmd-line">${hl(cmd.cmd, q)}<button class="copy-btn" data-cmd="${esc(cmd.cmd)}">copy</button></div>
     </div>
   </article>`;
 }
@@ -456,12 +456,39 @@ function render() {
   }
 }
 
-// ─── Copy ──────────────────────────────────────────────────
-function copyCmd(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
+
+// ─── Copy (event delegation) ───────────────────────────────
+// Avoids the JSON.stringify / double-quote attribute-breaking bug.
+// The raw command is stored HTML-escaped in data-cmd; we decode it
+// via a temporary element before writing to the clipboard.
+resultsEl.addEventListener('click', e => {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+
+  const d = document.createElement('div');
+  d.innerHTML = btn.dataset.cmd;          // unescape &quot; etc.
+  const text = d.textContent;
+
+  const done = () => {
     btn.textContent = 'copied!'; btn.classList.add('copied');
     setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
-  });
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+});
+
+function fallbackCopy(text, callback) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); callback(); } catch(e) {}
+  document.body.removeChild(ta);
 }
 
 // ─── Init ──────────────────────────────────────────────────
