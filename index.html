@@ -85,7 +85,7 @@
   }
 
   /* Base input – appearance shared, sizing overridden per context */
-  #search {
+  #search-hero, #search-header {
     width: 100%;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -94,25 +94,25 @@
     outline: none; caret-color: var(--accent);
     transition: border-color 0.2s, box-shadow 0.2s;
   }
-  #search:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,229,160,0.1); }
-  #search::placeholder { color: var(--dim); }
+  #search-hero:focus, #search-header:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,229,160,0.1); }
+  #search-hero::placeholder, #search-header::placeholder { color: var(--dim); }
 
   /* Compact (in header) */
-  .header-inner .search-wrap #search {
+  .header-inner .search-wrap #search-header {
     font-size: 0.88rem; padding: 0.5rem 1rem 0.5rem 2.2rem; border-radius: 6px;
   }
   .header-inner .search-wrap .search-prefix { font-size: 0.9rem; left: 0.9rem; }
 
   /* Large (in hero) */
-  #hero-search-wrap #search {
+  .hero-search-wrap #search-hero {
     font-size: 1.05rem; padding: 0.9rem 1.2rem 0.9rem 2.7rem;
     border-radius: 10px; border-color: var(--dim);
   }
-  #hero-search-wrap #search:focus {
+  .hero-search-wrap #search-hero:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(0,229,160,0.12), 0 8px 32px rgba(0,229,160,0.07);
   }
-  #hero-search-wrap .search-prefix { font-size: 1.1rem; left: 1rem; }
+  .hero-search-wrap .search-prefix { font-size: 1.1rem; left: 1rem; }
 
   #count { flex-shrink: 0; font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
   #count strong { color: var(--accent); }
@@ -146,7 +146,7 @@
     font-size: 0.7rem; color: var(--accent2);
   }
 
-  #hero-search-wrap {
+  .hero-search-wrap {
     width: 100%; max-width: 600px;
     position: relative; display: flex; align-items: center;
   }
@@ -293,9 +293,9 @@
 <!-- Hero: zentrierte Suche beim Start -->
 <div id="hero">
   <div class="hero-logo">CMD<span>Search</span></div>
-  <div id="hero-search-wrap">
+  <div class="hero-search-wrap">
     <span class="search-prefix">$</span>
-    <input id="search" type="text"
+    <input id="search-hero" type="text"
       placeholder="Befehl, Tool oder Stichwort eingeben …"
       autocomplete="off" spellcheck="false" autofocus>
   </div>
@@ -305,11 +305,16 @@
   </div>
 </div>
 
-<!-- Header: erscheint beim Tippen -->
+<!-- Header: kompakt, erscheint beim Tippen -->
 <header id="mainHeader">
   <div class="header-inner">
     <div class="logo">CMD<span>Search</span></div>
-    <div class="search-wrap" id="headerSearchSlot"></div>
+    <div class="search-wrap">
+      <span class="search-prefix">$</span>
+      <input id="search-header" type="text"
+        placeholder="Befehl, Tool oder Stichwort eingeben …"
+        autocomplete="off" spellcheck="false">
+    </div>
     <div id="count"></div>
   </div>
   <div class="group-bar" id="groupBar"></div>
@@ -329,66 +334,69 @@
 <script>
 // ─── Farbzuweisung pro cat ─────────────────────────────────
 const CAT_META = {
-  nmap:         { short:"NM",  color:"#3b9eff" },
-  netcat:       { short:"NC",  color:"#00e5a0" },
-  curl:         { short:"CL",  color:"#a78bfa" },
-  sqlmap:       { short:"SQL", color:"#ff4f6a" },
-  linux:        { short:"LX",  color:"#f0a500" },
-  python:       { short:"PY",  color:"#3b9eff" },
-  gobuster:     { short:"GB",  color:"#ff4f6a" },
-  ffuf:         { short:"FF",  color:"#a78bfa" },
-  hydra:        { short:"HY",  color:"#ff4f6a" },
-  ssh:          { short:"SSH", color:"#00e5a0" },
-  openssl:      { short:"SSL", color:"#f0a500" },
-  john:         { short:"JN",  color:"#ff4f6a" },
-  hashcat:      { short:"HC",  color:"#a78bfa" },
-  docker:       { short:"DK",  color:"#3b9eff" },
-  git:          { short:"GIT", color:"#ff4f6a" },
+  nmap:           { short:"NM",  color:"#3b9eff" },
+  netcat:         { short:"NC",  color:"#00e5a0" },
+  curl:           { short:"CL",  color:"#a78bfa" },
+  sqlmap:         { short:"SQL", color:"#ff4f6a" },
+  linux:          { short:"LX",  color:"#f0a500" },
+  python:         { short:"PY",  color:"#3b9eff" },
+  gobuster:       { short:"GB",  color:"#ff4f6a" },
+  ffuf:           { short:"FF",  color:"#a78bfa" },
+  hydra:          { short:"HY",  color:"#ff4f6a" },
+  ssh:            { short:"SSH", color:"#00e5a0" },
+  openssl:        { short:"SSL", color:"#f0a500" },
+  john:           { short:"JN",  color:"#ff4f6a" },
+  hashcat:        { short:"HC",  color:"#a78bfa" },
+  docker:         { short:"DK",  color:"#3b9eff" },
+  git:            { short:"GIT", color:"#ff4f6a" },
   "defender-av":  { short:"AV",  color:"#00b4e0" },
   "defender-mde": { short:"MDE", color:"#0078d4" },
-  winfirewall:  { short:"FW",  color:"#a78bfa" },
-  "docker-ops": { short:"DK",  color:"#3b9eff" },
-  "git-ops":    { short:"GIT", color:"#f0a500" },
+  winfirewall:    { short:"FW",  color:"#a78bfa" },
+  "docker-ops":   { short:"DK",  color:"#3b9eff" },
+  "git-ops":      { short:"GIT", color:"#f0a500" },
 };
 function catMeta(cat) {
-  return CAT_META[cat] || { short: cat.slice(0,3).toUpperCase(), color: "#6b7f96" };
+  return CAT_META[cat] || { short: cat.slice(0,3).toUpperCase(), color:"#6b7f96" };
 }
+
+// ─── Elements ──────────────────────────────────────────────
+const heroEl      = document.getElementById('hero');
+const headerEl    = document.getElementById('mainHeader');
+const searchHero  = document.getElementById('search-hero');
+const searchHdr   = document.getElementById('search-header');
+const resultsEl   = document.getElementById('results');
+const countEl     = document.getElementById('count');
+const noResEl     = document.getElementById('no-results');
+const groupBarEl  = document.getElementById('groupBar');
+const catBarEl    = document.getElementById('catBar');
 
 // ─── State ─────────────────────────────────────────────────
 let activeGroup = null;
 let activeCat   = null;
-const searchEl       = document.getElementById('search');
-const resultsEl      = document.getElementById('results');
-const countEl        = document.getElementById('count');
-const noResEl        = document.getElementById('no-results');
-const groupBarEl     = document.getElementById('groupBar');
-const catBarEl       = document.getElementById('catBar');
-const heroEl         = document.getElementById('hero');
-const heroSearchSlot = document.getElementById('hero-search-wrap');
-const headerSearchSlot = document.getElementById('headerSearchSlot');
-const headerEl       = document.getElementById('mainHeader');
 
-// The search input starts in the hero; on activate it moves to the header
-function setSearchActive(active) {
+// Returns the current search query (from whichever input is visible)
+function getQuery() {
+  return heroEl.classList.contains('hidden')
+    ? searchHdr.value.trim().toLowerCase()
+    : searchHero.value.trim().toLowerCase();
+}
+
+// Sync both inputs and switch hero ↔ header
+function setActive(active) {
   if (active) {
-    // Move input + prefix into header
-    const prefix = heroSearchSlot.querySelector('.search-prefix');
-    headerSearchSlot.appendChild(prefix);
-    headerSearchSlot.appendChild(searchEl);
-    headerEl.classList.add('visible');
+    searchHdr.value = searchHero.value;
     heroEl.classList.add('hidden');
+    headerEl.classList.add('visible');
+    searchHdr.focus();
   } else {
-    // Move back to hero
-    const prefix = headerSearchSlot.querySelector('.search-prefix');
-    heroSearchSlot.appendChild(prefix);
-    heroSearchSlot.appendChild(searchEl);
+    searchHero.value = searchHdr.value;
     headerEl.classList.remove('visible');
     heroEl.classList.remove('hidden');
-    searchEl.focus();
+    searchHero.focus();
   }
 }
 
-// ─── Distinct groups ───────────────────────────────────────
+// ─── Build group tabs ──────────────────────────────────────
 function buildGroupTabs() {
   const GROUPS = ['Alle', ...new Set(DB.map(c => c.group))];
   GROUPS.forEach(g => {
@@ -407,13 +415,12 @@ function buildGroupTabs() {
   });
 }
 
-// ─── Build sub-category (cat) bar ─────────────────────────
+// ─── Build sub-category bar ────────────────────────────────
 function buildCatBar() {
   catBarEl.innerHTML = '';
   const pool = activeGroup ? DB.filter(c => c.group === activeGroup) : DB;
   const cats = [...new Set(pool.map(c => c.cat))];
-  if (cats.length === 0) return;
-
+  if (!cats.length) return;
   const allBtn = makeCatBtn('Alle', null);
   allBtn.classList.add('active');
   catBarEl.appendChild(allBtn);
@@ -449,7 +456,6 @@ function cardHtml(cmd, q) {
   const tags = (cmd.tags||[]).map(t =>
     `<span class="pill" style="color:${m.color};border-color:${m.color}40">${esc(t)}</span>`
   ).join('');
-
   return `
   <article class="card">
     <div class="card-header">
@@ -467,12 +473,11 @@ function cardHtml(cmd, q) {
 
 // ─── Render ────────────────────────────────────────────────
 function render() {
-  const q     = searchEl.value.trim().toLowerCase();
+  const q     = getQuery();
   const terms = q.split(/\s+/).filter(Boolean);
-  const isIdle = terms.length === 0 && !activeGroup && !activeCat;
+  const isIdle = !terms.length && !activeGroup && !activeCat;
 
-  // Toggle hero vs header
-  setSearchActive(!isIdle);
+  setActive(!isIdle);
 
   if (isIdle) {
     resultsEl.innerHTML = '';
@@ -491,7 +496,7 @@ function render() {
 
   countEl.innerHTML = `<strong>${filtered.length}</strong> command${filtered.length !== 1 ? 's' : ''}`;
 
-  if (filtered.length === 0) {
+  if (!filtered.length) {
     resultsEl.innerHTML = '';
     noResEl.style.display = 'block';
   } else {
@@ -500,24 +505,17 @@ function render() {
   }
 }
 
-
 // ─── Copy (event delegation) ───────────────────────────────
-// Avoids the JSON.stringify / double-quote attribute-breaking bug.
-// The raw command is stored HTML-escaped in data-cmd; we decode it
-// via a temporary element before writing to the clipboard.
 resultsEl.addEventListener('click', e => {
   const btn = e.target.closest('.copy-btn');
   if (!btn) return;
-
   const d = document.createElement('div');
-  d.innerHTML = btn.dataset.cmd;          // unescape &quot; etc.
+  d.innerHTML = btn.dataset.cmd;
   const text = d.textContent;
-
   const done = () => {
     btn.textContent = 'copied!'; btn.classList.add('copied');
     setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
   };
-
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
   } else {
@@ -535,22 +533,23 @@ function fallbackCopy(text, callback) {
   document.body.removeChild(ta);
 }
 
+// ─── Wire up both inputs ───────────────────────────────────
+searchHero.addEventListener('input', render);
+searchHdr.addEventListener('input',  render);
+
 // ─── Init ──────────────────────────────────────────────────
 fetch('commands.json')
-  .then(r => {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  })
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
   .then(data => {
     window.DB = data;
-    searchEl.addEventListener('input', () => { activeCat = null; buildCatBar(); render(); });
     buildGroupTabs();
     buildCatBar();
     render();
   })
   .catch(err => {
-    document.getElementById('hero').innerHTML =
-      '<div style="color:var(--red);font-size:.85rem">⚠ commands.json konnte nicht geladen werden.<br><small>' + err.message + '</small></div>';
+    heroEl.querySelector('.hero-sub').innerHTML =
+      `<span style="color:var(--red)">⚠ commands.json konnte nicht geladen werden<br>
+      <small style="color:var(--muted)">${err.message} — stelle sicher dass commands.json im gleichen Ordner liegt</small></span>`;
   });
 </script>
 </body>
