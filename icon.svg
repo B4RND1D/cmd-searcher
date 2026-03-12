@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#0a0c0f"/>
+
+  <!-- Terminal window chrome -->
+  <rect x="64" y="112" width="384" height="288" rx="16" fill="#0f1318" stroke="#1e2530" stroke-width="3"/>
+
+  <!-- Title bar -->
+  <rect x="64" y="112" width="384" height="44" rx="16" fill="#141a21"/>
+  <rect x="64" y="134" width="384" height="22" fill="#141a21"/>
+
+  <!-- Traffic lights -->
+  <circle cx="110" cy="134" r="9" fill="#ff4f6a" opacity="0.85"/>
+  <circle cx="140" cy="134" r="9" fill="#f0a500" opacity="0.85"/>
+  <circle cx="170" cy="134" r="9" fill="#00e5a0" opacity="0.85"/>
+
+  <!-- Prompt line 1 -->
+  <text x="92" y="198" font-family="monospace" font-size="28" font-weight="700" fill="#00e5a0">$</text>
+  <text x="122" y="198" font-family="monospace" font-size="28" fill="#3b9eff">nmap</text>
+  <text x="210" y="198" font-family="monospace" font-size="28" fill="#c8d8e8" opacity="0.6">-sV</text>
+
+  <!-- Prompt line 2 -->
+  <text x="92" y="244" font-family="monospace" font-size="28" font-weight="700" fill="#00e5a0">$</text>
+  <text x="122" y="244" font-family="monospace" font-size="28" fill="#a78bfa">ssh</text>
+  <text x="192" y="244" font-family="monospace" font-size="28" fill="#c8d8e8" opacity="0.6">-i key</text>
+
+  <!-- Prompt line 3 faded -->
+  <text x="92" y="290" font-family="monospace" font-size="28" font-weight="700" fill="#00e5a0" opacity="0.4">$</text>
+  <text x="122" y="290" font-family="monospace" font-size="28" fill="#c8d8e8" opacity="0.25">hydra -l</text>
+
+  <!-- Search magnifier overlay (bottom right) -->
+  <circle cx="358" cy="330" r="52" fill="#0a0c0f" stroke="#00e5a0" stroke-width="14"/>
+  <line x1="396" y1="368" x2="432" y2="404" stroke="#00e5a0" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- $ inside magnifier -->
+  <text x="358" y="346" font-family="monospace" font-size="38" font-weight="900" fill="#00e5a0" text-anchor="middle">$</text>
+</svg>
